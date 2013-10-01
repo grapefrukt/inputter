@@ -1,0 +1,11 @@
+{
+  "name": "inputter",
+  "url": "http://github.com/grapefrukt/inputter",
+  "license": "MIT",
+  "tags": [ "flash", "cpp", "neko", "js" ],
+  "description": "Inputter is a library to abstract input devices down to a unified interface",
+  "version": "0.0.1",
+  "releasenote": "First release",
+  "contributors": [ "grapefrukt" ],
+  "dependencies": {}
+}
