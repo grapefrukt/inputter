@@ -90,11 +90,11 @@ class Inputter {
 class InputterPlayerData {
 	
 	private var plugin:InputterPlugin;
-	public var index(default, null):Int;
-	public var device(default, null):Int;
-	public var axisX(default, null):Int;
-	public var axisY(default, null):Int;
-	public var primaryButton(default, null):Int;
+	private var index(default, null):Int;
+	private var device(default, null):Int;
+	private var axisX:Int;
+	private var axisY:Int;
+	private var primaryButton:Int;
 	
 	public function new(index:Int, plugin:InputterPlugin, device:Int, axisX:Int, axisY:Int, primaryButton:Int) {
 		this.index = index;
