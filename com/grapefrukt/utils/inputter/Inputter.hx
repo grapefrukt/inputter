@@ -7,7 +7,7 @@ import flash.Lib;
 import flash.utils.Timer;
 
 #if cpp
-import flash.events.JoystickEvent;
+import openfl.events.JoystickEvent;
 #end
 
 /**
