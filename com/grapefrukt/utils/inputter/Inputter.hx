@@ -105,15 +105,38 @@ class InputterPlayerData {
 		this.primaryButton = primaryButton;
 	}
 	
-	public function getMovement(out:Point = null):Point {
+	/**
+	 * Returns a deadzoned direction vector
+	 * @param	out		The point to output data into, a temporary point will be returned if nothing is supplied (do retain a reference to this, it will be reused)
+	 * @param	axisX	The axis index to use as the x axis (will be the default axis if -1 is specified)
+	 * @param	axisY	The axis index to use as the y axis (will be the default axis if -1 is specified)
+	 * @return	A normalized direction vector
+	 */
+	public function getMovement(out:Point = null, axisX:Int = -1, axisY:Int = -1):Point {
+		if (axisX == -1) axisX = this.axisX;
+		if (axisY == -1) axisY = this.axisY;
 		var d = plugin.data[device];
 		return Inputter.applyDeadzone(d.axis[axisX], d.axis[axisY], out != null ? out : Inputter._tmpPoint);
 	}
 	
-	inline public function hasMovement():Bool {
-		return getMovement().length > .25;
+	public function getAxis(index:Int):Float {
+		return plugin.data[device].axis[index];
 	}
 	
+	/**
+	 * Returns true if the players directional input along the default axis exceeds the threshold value
+	 * @param	threshold	The threshold value to exceed, defaults to 25%
+	 * @return
+	 */
+	inline public function hasMovement(threshold:Float = .25):Bool {
+		return getMovement().length > threshold; 
+	}
+	
+	/**
+	 * Checks if the player is pressing a button
+	 * @param	button 		the button index to check, defaults to the primary button
+	 * @return
+	 */
 	public function isDown(button:Int = -1):Bool {
 		if (button == -1 ) button = primaryButton;
 		return plugin.data[device].buttons[button];
@@ -308,10 +331,7 @@ class InputterPluginJoystick extends InputterPlugin {
 	
 	private function handleButton(e:JoystickEvent):Void {
 		var id = e.id;
-		if (buttonMap != null) {
-			//if (buttonMap[id] == null) return;
-			id = buttonMap[id];
-		}
+		if (buttonMap != null) id = buttonMap[id];
 		setButton(e.device, e.id, e.type == JoystickEvent.BUTTON_DOWN);
 	}
 }
