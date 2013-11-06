@@ -107,7 +107,7 @@ class InputterPlayerData {
 	
 	/**
 	 * Returns a deadzoned direction vector
-	 * @param	out		The point to output data into, a temporary point will be returned if nothing is supplied (do retain a reference to this, it will be reused)
+	 * @param	out		The point to output data into, a temporary point will be returned if nothing is supplied (do not retain a reference to this, it will be reused)
 	 * @param	axisX	The axis index to use as the x axis (will be the default axis if -1 is specified)
 	 * @param	axisY	The axis index to use as the y axis (will be the default axis if -1 is specified)
 	 * @return	A normalized direction vector
