@@ -1,5 +1,7 @@
 package com.grapefrukt.utils.inputter;
+import com.grapefrukt.utils.inputter.Inputter.InputterPluginJoystick;
 import flash.display.Stage;
+import flash.events.EventDispatcher;
 import flash.events.KeyboardEvent;
 import flash.events.TimerEvent;
 import flash.geom.Point;
@@ -17,10 +19,8 @@ import openfl.events.JoystickEvent;
 
 class Inputter {
 	
-	private var plugins:Array<InputterPlugin>;
-	public var players(default, null):Array<InputterPlayerData>;
+	public var players(default, null):Array<InputterPlayer>;
 	public var stage(default, null):Stage;
-	public var numPlugins(get_numPlugins, never):Int;
 	
 	private static var deadzone:Float;
 	private static var upperDeadzone:Float;
@@ -36,30 +36,13 @@ class Inputter {
 		this.stage = stage;
 		Inputter.deadzone = deadzone;
 		Inputter.upperDeadzone = upperDeadzone;
-		this.players = new Array<InputterPlayerData>();
-		this.plugins = [];
+		this.players = new Array<InputterPlayer>();
 	}
 	
-	public function add(plugin:InputterPlugin):Int {
-		plugin.init(this);
-		plugins.push(plugin);
-		return plugins.length;
-	}
-	
-	public function registerPlayer(plugin:Int, device:Int, axisX:Int = 0, axisY:Int = 1, primaryButton:Int = 0) {
-		players.push(new InputterPlayerData(players.length, plugins[plugin], device, axisX, axisY, primaryButton));
-	}
-	
-	inline public function getMovement(player:Int, out:Point = null):Point {
-		return players[player].getMovement(out);
-	}
-	
-	inline public function hasMovement(player:Int):Bool {
-		return players[player].hasMovement();
-	}
-	
-	public function isDown(player:Int, button:Int):Bool {
-		return players[player].isDown(button);
+	public function createPlayer():InputterPlayer {
+		var p = new InputterPlayer(this, players.length);
+		players.push(p);
+		return p;
 	}
 	
 	public static function applyDeadzone(x:Float, y:Float, out:Point):Point {
@@ -81,46 +64,56 @@ class Inputter {
 		return out;
 	}
 	
-	private function get_numPlugins() {
-		return plugins.length;
-	}
-	
 }
 
-class InputterPlayerData {
+class InputterPlayer extends EventDispatcher {
 	
-	private var plugin:InputterPlugin;
+	private var inputter:Inputter;
+	private var plugins:Array<InputterPlugin>;
 	private var index(default, null):Int;
-	private var device(default, null):Int;
-	private var axisX:Int;
-	private var axisY:Int;
-	private var primaryButton:Int;
 	
-	public function new(index:Int, plugin:InputterPlugin, device:Int, axisX:Int, axisY:Int, primaryButton:Int) {
+	private var axis(default, null):Array<Float>;
+	private var buttons(default, null):Array<Bool>;
+		
+	public function new(inputter:Inputter, index:Int, numAxis:Int = 5, numButtons:Int = 4) {
+		super();
+		this.inputter = inputter;
 		this.index = index;
-		this.plugin = plugin;
-		this.device = device;
-		this.axisX = axisX;
-		this.axisY = axisY;
-		this.primaryButton = primaryButton;
+		axis = new Array<Float>();
+		buttons = new Array<Bool>();
+		
+		// pre inits devices, buttons and axis so they can be read even if no events have been received
+		for (i in 0 ... numAxis) setAxis(i, 0);
+		for (i in 0 ... numButtons) setButton(i, false);
+	}
+	
+	public function addPlugin(plugin:InputterPlugin) {
+		plugin.init(inputter, setButton, setAxis);
+	}
+	
+	private function setButton(buttonId:Int, state:Bool) {
+		if (buttons[buttonId] == state) return;
+		buttons[buttonId] = state;
+		// dispatch event here
+	}
+	
+	private function setAxis(axisId:Int, value:Float) {
+		axis[axisId] = value;
 	}
 	
 	/**
 	 * Returns a deadzoned direction vector
 	 * @param	out		The point to output data into, a temporary point will be returned if nothing is supplied (do not retain a reference to this, it will be reused)
-	 * @param	axisX	The axis index to use as the x axis (will be the default axis if -1 is specified)
-	 * @param	axisY	The axis index to use as the y axis (will be the default axis if -1 is specified)
+	 * @param	axisX	The axis index to use as the x axis
+	 * @param	axisY	The axis index to use as the y axis
 	 * @return	A normalized direction vector
 	 */
-	public function getMovement(out:Point = null, axisX:Int = -1, axisY:Int = -1):Point {
-		if (axisX == -1) axisX = this.axisX;
-		if (axisY == -1) axisY = this.axisY;
-		var d = plugin.data[device];
-		return Inputter.applyDeadzone(d.axis[axisX], d.axis[axisY], out != null ? out : Inputter._tmpPoint);
+	public function getMovement(out:Point = null, axisX:Int = 0, axisY:Int = 1):Point {
+		return Inputter.applyDeadzone(axis[axisX], axis[axisY], out != null ? out : Inputter._tmpPoint);
 	}
 	
 	public function getAxis(index:Int):Float {
-		return plugin.data[device].axis[index];
+		return axis[index];
 	}
 	
 	/**
@@ -137,61 +130,23 @@ class InputterPlayerData {
 	 * @param	button 		the button index to check, defaults to the primary button
 	 * @return
 	 */
-	public function isDown(button:Int = -1):Bool {
-		if (button == -1 ) button = primaryButton;
-		return plugin.data[device].buttons[button];
+	public function isDown(button:Int = 0):Bool {
+		return buttons[button];
 	}
 }
-
-class InputterData {
-	public var axis(default, null):Array<Float>;
-	public var buttons(default, null):Array<Bool>;
-	
-	public function new() {
-		axis = new Array<Float>();
-		buttons = new Array<Bool>();
-	}
-}
-
 
 private class InputterPlugin {
-
-	public var data:Array<InputterData>;
 	
-	public function new(numDevices:Int, numAxis:Int, numButtons:Int) {
-		data = new Array<InputterData>();
-		
-		// pre inits devices, buttons and axis so they can be read even if no events have been received
-		for (i in 0 ... numDevices) {
-			for (j in 0 ... numAxis) setAxis(i, j, 0);
-			for (j in 0 ... numButtons) setButton(i, j, false);
-		}
-	}
+	private var setButton:Int->Bool->Void;
+	private var setAxis:Int->Float->Void;
 	
-	public function init(inputter:Inputter){}
-	
-	private function setButton(deviceId:Int, buttonId:Int, state:Bool) {
-		if (data[deviceId] == null) initDevice(deviceId);
-		data[deviceId].buttons[buttonId] = state;
-	}
-	
-	private function setAxis(deviceId:Int, axisId:Int, value:Float) {
-		if (data[deviceId] == null) initDevice(deviceId);
-		data[deviceId].axis[axisId] = value;
-	}
-	
-	private function getAxis(deviceId:Int, axisId:Int):Float {
-		if (data[deviceId] == null) initDevice(deviceId);
-		return data[deviceId].axis[axisId];
-	}
-	
-	private function initDevice(deviceId:Int) {
-		data[deviceId] = new InputterData();
+	public function init(inputter:Inputter, setButton:Int->Bool->Void, setAxis:Int->Float->Void) {
+		this.setButton = setButton;
+		this.setAxis = setAxis;
 	}
 }
 
-private typedef KeyboardDeviceMap = {
-	device : Int,
+private typedef KeyboardMap = {
 	button : Int,
 	axis : Int,
 	value : Int,
@@ -199,15 +154,14 @@ private typedef KeyboardDeviceMap = {
 
 class InputterPluginKeyboard extends InputterPlugin {
 	
-	private var keyMap:Array<KeyboardDeviceMap>;
+	private var keyMap:Array<KeyboardMap>;
 	
-	public function new(numDevices:Int, numAxis:Int, numButtons:Int) {
-		super(numDevices, numAxis, numButtons);
-		keyMap = new Array<KeyboardDeviceMap>();
+	public function new() {
+		keyMap = new Array<KeyboardMap>();
 	}
 	
-	override public function init(inputter:Inputter) {
-		super.init(inputter);
+	override public function init(inputter:Inputter, setButton:Int->Bool->Void, setAxis:Int->Float->Void) {
+		super.init(inputter, setButton, setAxis);
 		inputter.stage.addEventListener(KeyboardEvent.KEY_DOWN, handleKey);
 		inputter.stage.addEventListener(KeyboardEvent.KEY_UP, handleKey);
 	}
@@ -217,19 +171,19 @@ class InputterPluginKeyboard extends InputterPlugin {
 	 * @param	device		The device to report as
 	 * @param	keyCodes	A list of buttons in pairs of minus/plus
 	 */
-	public function mapAxis(device:Int, keyCodes:Array<Int>) {
+	public function mapAxis(keyCodes:Array<Int>) {
 		var i = 0;
 		var axis = 0;
 		while (i < keyCodes.length - 1) {
-			keyMap[keyCodes[i + 0]] = { device : device, button : -1, axis : axis, value : -1 };
-			keyMap[keyCodes[i + 1]] = { device : device, button : -1, axis : axis, value : 1 };
+			keyMap[keyCodes[i + 0]] = { button : -1, axis : axis, value : -1 };
+			keyMap[keyCodes[i + 1]] = { button : -1, axis : axis, value : 1 };
 			axis++;
 			i += 2;
 		}
 	}
 	
-	public function mapButtons(device:Int, keyCodes:Array<Int>) {
-		for (i in 0 ... keyCodes.length) keyMap[keyCodes[i]] =  { device : device, button : i, axis : -1, value : 0 };
+	public function mapButtons(keyCodes:Array<Int>) {
+		for (i in 0 ... keyCodes.length) keyMap[keyCodes[i]] =  { button : i, axis : -1, value : 0 };
 	}
 	
 	private function handleKey(e:KeyboardEvent):Void {
@@ -237,80 +191,26 @@ class InputterPluginKeyboard extends InputterPlugin {
 		if (key == null) return;
 		if (key.axis >= 0) {
 			var value = e.type == KeyboardEvent.KEY_DOWN ? key.value : 0;
-			if (getAxis(key.device, key.axis) != key.value && value == 0) return;
-			setAxis(key.device, key.axis, value);
+			// TODO: check if this is still needed
+			//if (getAxis(key.axis) != key.value && value == 0) return;
+			setAxis(key.axis, value);
 		}
-		if (key.button >= 0) setButton(key.device, key.button, e.type == KeyboardEvent.KEY_DOWN);
+		if (key.button >= 0) setButton(key.button, e.type == KeyboardEvent.KEY_DOWN);
 	}
-}
-
-class InputterPluginFuzzer extends InputterPlugin {
-	
-	private var numDevices:Int;
-	private var numAxis:Int;
-	private var numButtons:Int;
-	
-	private var offsets:Array<Float>;
-	private var speeds:Array<Float>;
-	
-	private var timer:Timer;
-	
-	public var enabled:Bool;
-	
-	public function new(numDevices:Int, numAxis:Int, numButtons:Int) {
-		super(numDevices, numAxis, numButtons);
-		this.numDevices = numDevices;
-		this.numAxis = numButtons;
-		
-		offsets = [];
-		speeds = [];
-		for ( i in 0 ... numDevices) {
-			offsets[i] = Math.random() * Math.PI * 2;
-			speeds[i] = .05 + Math.random() * .4;
-		}
-		
-		timer = new Timer(16);
-		timer.addEventListener(TimerEvent.TIMER, handleTimer);
-		timer.start();
-		enabled = false;
-	}
-	
-	private function handleTimer(e:TimerEvent):Void {
-		if (!enabled) {
-			for (device in 0 ... numDevices) {
-				setAxis(device, 0, 0);
-				setAxis(device, 1, 0);
-				setButton(device, 0, false);
-			}
-			return;
-		}
-		
-		for (device in 0 ... numDevices) {
-			offsets[device] += speeds[device];
-			setAxis(device, 0, Math.sin(offsets[device]));
-			setAxis(device, 1, Math.cos(offsets[device]));
-			setButton(device, 0, Math.sin(offsets[device]) > .5);
-			
-			if (Math.random() < .025) {
-				offsets[device] = Math.random() * Math.PI * 2;
-				speeds[device] = .05 + Math.random() * .2 * (Math.random() < .5 ? 1 : -1);
-			}
-		}
-	}
-	
 }
 
 #if cpp
 class InputterPluginJoystick extends InputterPlugin {
 	
 	private var buttonMap:Array<Int>;
+	private var axisMap:Array<Int>;
 	
-	public function new(numDevices:Int, numAxis:Int, numButtons:Int) {
-		super(numDevices, numAxis, numButtons);
+	public function new() {
+		
 	}
 	
-	override public function init(inputter:Inputter) {
-		super.init(inputter);
+	override public function init(inputter:Inputter, setButton:Int->Bool->Void, setAxis:Int->Float->Void) {
+		super.init(inputter, setButton, setAxis);
 		inputter.stage.addEventListener(JoystickEvent.AXIS_MOVE, handleAxis);
 		inputter.stage.addEventListener(JoystickEvent.BUTTON_DOWN, handleButton);
 		inputter.stage.addEventListener(JoystickEvent.BUTTON_UP, handleButton);
@@ -325,14 +225,27 @@ class InputterPluginJoystick extends InputterPlugin {
 		for (i in 0 ... buttonCodes.length) buttonMap[buttonCodes[i]] = i;
 	}
 	
+	/**
+	 * Remaps axis id's
+	 * @param	buttonCodes A list of axis id's in the order to map them. [3, 4, 5] will map to axis [0, 1, 2]. If you set a map unmapped buttons will be ignored.
+	 */
+	public function mapAxis(axisCodes:Array<Int>) {
+		axisMap = new Array<Int>();
+		for (i in 0 ... axisCodes.length) axisMap[axisCodes[i]] = i;
+	}
+	
 	private function handleAxis(e:JoystickEvent):Void {
-		for (i in 0 ... e.axis.length) setAxis(e.device, i, e.axis[i]);
+		for (i in 0 ... e.axis.length) {
+			var id = i;
+			if (axisMap != null) id = axisMap[id];
+			setAxis(id, e.axis[i]);
+		}
 	}
 	
 	private function handleButton(e:JoystickEvent):Void {
 		var id = e.id;
 		if (buttonMap != null) id = buttonMap[id];
-		setButton(e.device, e.id, e.type == JoystickEvent.BUTTON_DOWN);
+		setButton(e.id, e.type == JoystickEvent.BUTTON_DOWN);
 	}
 }
 #end
