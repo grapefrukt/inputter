@@ -4,6 +4,7 @@ import flash.display.Stage;
 import flash.events.Event;
 import flash.events.EventDispatcher;
 import flash.events.KeyboardEvent;
+import flash.events.MouseEvent;
 import flash.events.TimerEvent;
 import flash.geom.Point;
 import flash.Lib;
@@ -210,6 +211,65 @@ class InputterPluginKeyboard extends InputterPlugin {
 			setAxis(key.axis, value);
 		}
 		if (key.button >= 0) setButton(key.button, e.type == KeyboardEvent.KEY_DOWN);
+	}
+}
+
+class InputterPluginMouse extends InputterPlugin {
+	
+	private var p:Point;
+	private var stage:Stage;
+	private var centerRatioX:Float;
+	private var centerRatioY:Float;
+	private var scaleBy:Float;
+	
+	private var buttonDown:Bool = false;
+	
+	public function new(scaleBy:Float = 1, centerRatioX:Float = .5, centerRatioY:Float = .5) {
+		this.scaleBy = scaleBy;
+		this.centerRatioX = centerRatioX;
+		this.centerRatioY = centerRatioY;
+		p = new Point();
+	}
+	
+	override public function init(inputter:Inputter, setButton:Int->Bool->Void, setAxis:Int->Float->Void) {
+		super.init(inputter, setButton, setAxis);
+		stage = inputter.stage;
+		
+		inputter.stage.addEventListener(MouseEvent.MOUSE_DOWN, handleButton);
+		inputter.stage.addEventListener(MouseEvent.MOUSE_UP, handleButton);
+		
+		inputter.stage.addEventListener(MouseEvent.RIGHT_MOUSE_DOWN, handleButtonR);
+		inputter.stage.addEventListener(MouseEvent.RIGHT_MOUSE_UP, handleButtonR);
+		
+		inputter.stage.addEventListener(MouseEvent.MOUSE_MOVE, handleMove);
+		
+	}
+
+	private function handleButton(e:MouseEvent):Void {
+		buttonDown = e.type == MouseEvent.MOUSE_DOWN;
+		if (buttonDown) {
+			handleMove(e);
+		} else {
+			setAxis(0, 0);
+			setAxis(1, 0);
+		}
+	}
+	
+	private function handleButtonR(e:MouseEvent):Void {
+		setButton(0, e.type == MouseEvent.RIGHT_MOUSE_UP);
+	}
+	
+	private function handleMove(e:MouseEvent):Void {
+		if (!buttonDown) return;
+		p.x = stage.mouseX / stage.stageWidth - centerRatioX;
+		p.y = stage.mouseY / stage.stageHeight - centerRatioY;
+		
+		p.x *= scaleBy;
+		p.y *= scaleBy;
+		
+		if (p.length > 1) p.normalize(1);
+		setAxis(0, p.x);
+		setAxis(1, p.y);
 	}
 }
 
