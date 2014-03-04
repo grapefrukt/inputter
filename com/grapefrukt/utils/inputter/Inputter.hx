@@ -1,6 +1,7 @@
 package com.grapefrukt.utils.inputter;
 
 import flash.display.Stage;
+import flash.events.Event;
 import flash.events.EventDispatcher;
 import flash.events.KeyboardEvent;
 import flash.events.TimerEvent;
@@ -94,7 +95,7 @@ class InputterPlayer extends EventDispatcher {
 	private function setButton(buttonId:Int, state:Bool) {
 		if (buttons[buttonId] == state) return;
 		buttons[buttonId] = state;
-		// dispatch event here
+		dispatchEvent(new InputterEvent(state ? InputterEvent.BUTTON_DOWN : InputterEvent.BUTTON_UP, buttonId));
 	}
 	
 	private function setAxis(axisId:Int, value:Float) {
@@ -150,6 +151,19 @@ private typedef KeyboardMap = {
 	button : Int,
 	axis : Int,
 	value : Int,
+}
+
+class InputterEvent extends Event {
+	
+	public static inline var BUTTON_DOWN:String = "inputterevent_button_down";
+	public static inline var BUTTON_UP	:String = "inputterevent_button_up";
+	
+	public var index(default, null):Int;
+	
+	public function new(type:String, index:Int) {
+		super(type, false, false);
+		this.index = index;
+	}
 }
 
 class InputterPluginKeyboard extends InputterPlugin {
