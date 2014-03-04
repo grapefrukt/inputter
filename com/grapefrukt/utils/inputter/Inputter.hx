@@ -1,5 +1,5 @@
 package com.grapefrukt.utils.inputter;
-import com.grapefrukt.utils.inputter.Inputter.InputterPluginJoystick;
+
 import flash.display.Stage;
 import flash.events.EventDispatcher;
 import flash.events.KeyboardEvent;
