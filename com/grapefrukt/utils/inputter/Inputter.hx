@@ -223,8 +223,17 @@ class InputterPluginMouse extends InputterPlugin {
 	private var scaleBy:Float;
 	
 	private var buttonDown:Bool = false;
+	private var testInputTarget:MouseEvent -> Bool;
 	
-	public function new(scaleBy:Float = 1, centerRatioX:Float = .5, centerRatioY:Float = .5) {
+	/**
+	 * 
+	 * @param	scaleBy				The ratio to scale the mouse position by. Normal values are -.5 to .5 per axis
+	 * @param	centerRatioX		The center point to scale the values around
+	 * @param	centerRatioY		The center point to scale the values around
+	 * @param	testInputTarget		A callback that returns true for a valid input target. Used to ignore inputs on certain elements.
+	 */
+	public function new(scaleBy:Float = 1, centerRatioX:Float = .5, centerRatioY:Float = .5, testInputTarget:MouseEvent->Bool) {
+		this.testInputTarget = testInputTarget;
 		this.scaleBy = scaleBy;
 		this.centerRatioX = centerRatioX;
 		this.centerRatioY = centerRatioY;
@@ -247,6 +256,13 @@ class InputterPluginMouse extends InputterPlugin {
 
 	private function handleButton(e:MouseEvent):Void {
 		buttonDown = e.type == MouseEvent.MOUSE_DOWN;
+		
+		// if there's a callback to test the input target, run it
+		// it will return true if the target is valid
+		if (buttonDown && testInputTarget != null) {
+			buttonDown = testInputTarget(e);
+		}
+		
 		if (buttonDown) {
 			handleMove(e);
 		} else {
