@@ -218,12 +218,17 @@ class InputterPluginMouse extends InputterPlugin {
 	
 	private var p:Point;
 	private var stage:Stage;
-	private var centerRatioX:Float;
-	private var centerRatioY:Float;
-	private var scaleBy:Float;
+	
+	public var centerRatioX:Float;
+	public var centerRatioY:Float;
+	public var scaleBy:Float;
+	public var clickThreshold:Int = 150;
 	
 	private var buttonDown:Bool = false;
+	private var buttonDownAt:Int = 0;
 	private var testInputTarget:MouseEvent -> Bool;
+	
+	private var timer:Timer;
 	
 	/**
 	 * 
@@ -264,15 +269,45 @@ class InputterPluginMouse extends InputterPlugin {
 		}
 		
 		if (buttonDown) {
-			handleMove(e);
+			// note the time when the button was pressed
+			buttonDownAt = Lib.getTimer();
+			
+			// if a click threshold is set, we need to wait before sending movement
+			if (clickThreshold > 0) {
+				// make sure any previous timers are stopped
+				if (timer != null) timer.stop();
+				
+				// create a new timer that will fire once the threshold has passed
+				timer = new Timer(clickThreshold);
+				timer.run = handleCheckClick;
+			} else {
+				// if not, just send off the movement
+				handleMove(e);
+			}
+			
 		} else {
+			// if the button was released within the click threshold, it's a click!
+			if (Lib.getTimer() - buttonDownAt < clickThreshold) handleClick(e);
+			
 			setAxis(0, 0);
 			setAxis(1, 0);
 		}
 	}
 	
+	private function handleClick(e:MouseEvent) {
+		setButton(0, true);
+		setButton(0, false);
+	}
+	
+	private function handleCheckClick():Void {
+		timer.stop();
+		if (buttonDown) {
+			handleMove(null);
+		}
+	}
+	
 	private function handleButtonR(e:MouseEvent):Void {
-		setButton(0, e.type == MouseEvent.RIGHT_MOUSE_UP);
+		setButton(1, e.type == MouseEvent.RIGHT_MOUSE_UP);
 	}
 	
 	private function handleMove(e:MouseEvent):Void {
