@@ -1,14 +1,14 @@
 package com.grapefrukt.utils.inputter;
 
-import flash.display.Stage;
-import flash.events.Event;
-import flash.events.EventDispatcher;
-import flash.events.KeyboardEvent;
-import flash.events.MouseEvent;
-import flash.events.TimerEvent;
-import flash.geom.Point;
-import flash.Lib;
-import flash.utils.Timer;
+import haxe.Timer;
+import openfl.display.Stage;
+import openfl.events.Event;
+import openfl.events.EventDispatcher;
+import openfl.events.KeyboardEvent;
+import openfl.events.MouseEvent;
+import openfl.events.TimerEvent;
+import openfl.geom.Point;
+import openfl.Lib;
 
 #if cpp
 import openfl.events.JoystickEvent;
