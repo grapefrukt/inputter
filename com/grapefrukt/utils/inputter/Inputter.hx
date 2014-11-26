@@ -327,8 +327,8 @@ class InputterPluginMouse extends InputterPlugin {
 #if cpp
 class InputterPluginJoystick extends InputterPlugin {
 	
-	private var buttonMap:Array<Int>;
-	private var axisMap:Array<Int>;
+	private var buttonMap:Map<Int, Int>;
+	private var axisMap:Map<Int, Int>;
 	
 	public function new() {
 		
@@ -346,31 +346,37 @@ class InputterPluginJoystick extends InputterPlugin {
 	 * @param	buttonCodes A list of button id's in the order to map them. [3, 4, 5] will map to buttons [0, 1, 2]. If you set a map unmapped buttons will be ignored.
 	 */
 	public function mapButtons(buttonCodes:Array<Int>) {
-		buttonMap = new Array<Int>();
-		for (i in 0 ... buttonCodes.length) buttonMap[buttonCodes[i]] = i;
+		buttonMap = new Map();
+		for (i in 0 ... buttonCodes.length) buttonMap.set(buttonCodes[i], i);
 	}
 	
 	/**
 	 * Remaps axis id's
-	 * @param	buttonCodes A list of axis id's in the order to map them. [3, 4, 5] will map to axis [0, 1, 2]. If you set a map unmapped buttons will be ignored.
+	 * @param	buttonCodes A list of axis id's in the order to map them. [3, 4, 5] will map to axis [0, 1, 2]. If you set a map unmapped axis will be ignored.
 	 */
 	public function mapAxis(axisCodes:Array<Int>) {
-		axisMap = new Array<Int>();
-		for (i in 0 ... axisCodes.length) axisMap[axisCodes[i]] = i;
+		axisMap = new Map();
+		for (i in 0 ... axisCodes.length) axisMap.set(axisCodes[i], i);
 	}
 	
 	private function handleAxis(e:JoystickEvent):Void {
 		for (i in 0 ... e.axis.length) {
 			var id = i;
-			if (axisMap != null) id = axisMap[id];
+			if (axisMap != null) {
+				if (!axisMap.exists(id)) return;
+				id = axisMap.get(id);
+			}
 			setAxis(id, e.axis[i]);
 		}
 	}
 	
 	private function handleButton(e:JoystickEvent):Void {
 		var id = e.id;
-		if (buttonMap != null) id = buttonMap[id];
-		setButton(e.id, e.type == JoystickEvent.BUTTON_DOWN);
+		if (buttonMap != null) {
+			if (!buttonMap.exists(id)) return;
+			id = buttonMap.get(id);
+		}
+		setButton(id, e.type == JoystickEvent.BUTTON_DOWN);
 	}
 }
 #end
