@@ -137,7 +137,7 @@ class InputterPlayer extends EventDispatcher {
 	}
 }
 
-private class InputterPlugin {
+class InputterPlugin {
 	
 	private var setButton:Int->Bool->Void;
 	private var setAxis:Int->Float->Void;
@@ -223,12 +223,14 @@ class InputterPluginMouse extends InputterPlugin {
 	public var centerRatioY:Float;
 	public var scaleBy:Float;
 	public var clickThreshold:Int = 150;
+	public var holdThreshold:Int = 300;
 	
 	private var buttonDown:Bool = false;
 	private var buttonDownAt:Int = 0;
 	private var testInputTarget:MouseEvent -> Bool;
 	
-	private var timer:Timer;
+	private var clickTimer:Timer;
+	private var holdTimer:Timer;
 	
 	/**
 	 * 
@@ -272,14 +274,18 @@ class InputterPluginMouse extends InputterPlugin {
 			// note the time when the button was pressed
 			buttonDownAt = Lib.getTimer();
 			
+			if (holdTimer != null) holdTimer.stop();
+			holdTimer = new Timer(holdThreshold);
+			holdTimer.run = handleCheckHold;
+			
 			// if a click threshold is set, we need to wait before sending movement
 			if (clickThreshold > 0) {
 				// make sure any previous timers are stopped
-				if (timer != null) timer.stop();
+				if (clickTimer != null) clickTimer.stop();
 				
 				// create a new timer that will fire once the threshold has passed
-				timer = new Timer(clickThreshold);
-				timer.run = handleCheckClick;
+				clickTimer = new Timer(clickThreshold);
+				clickTimer.run = handleCheckClick;
 			} else {
 				// if not, just send off the movement
 				handleMove(e);
@@ -300,9 +306,18 @@ class InputterPluginMouse extends InputterPlugin {
 	}
 	
 	private function handleCheckClick():Void {
-		timer.stop();
+		clickTimer.stop();
 		if (buttonDown) {
 			handleMove(null);
+		}
+	}
+	
+	private function handleCheckHold():Void {
+		holdTimer.stop();
+		if (buttonDown) {
+			trace("HOLD!");
+			setButton(1, true);
+			setButton(1, false);
 		}
 	}
 	
