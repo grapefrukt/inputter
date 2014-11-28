@@ -344,9 +344,10 @@ class InputterPluginJoystick extends InputterPlugin {
 	
 	private var buttonMap:Map<Int, Int>;
 	private var axisMap:Map<Int, Int>;
+	private var deviceId:Int;
 	
-	public function new() {
-		
+	public function new(deviceId:Int) {
+		this.deviceId = deviceId;
 	}
 	
 	override public function init(inputter:Inputter, setButton:Int->Bool->Void, setAxis:Int->Float->Void) {
@@ -375,6 +376,7 @@ class InputterPluginJoystick extends InputterPlugin {
 	}
 	
 	private function handleAxis(e:JoystickEvent):Void {
+		if (e.device != deviceId) return;
 		for (i in 0 ... e.axis.length) {
 			var id = i;
 			if (axisMap != null) {
@@ -385,7 +387,8 @@ class InputterPluginJoystick extends InputterPlugin {
 		}
 	}
 	
-	private function handleButton(e:JoystickEvent):Void {
+	private function handleButton(e:JoystickEvent) {
+		if (e.device != deviceId) return;
 		var id = e.id;
 		if (buttonMap != null) {
 			if (!buttonMap.exists(id)) return;
