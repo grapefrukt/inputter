@@ -12,7 +12,7 @@ class InputterPlayer extends EventDispatcher {
 	
 	var inputter:Inputter;
 	var plugins:Array<InputterPlugin>;
-	var index(default, null):Int;
+	public var index(default, null):Int;
 	
 	var axis(default, null):Array<Float>;
 	var buttons(default, null):Array<Bool>;
