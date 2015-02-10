@@ -16,8 +16,15 @@ class InputterPluginKeyboard extends InputterPlugin {
 	
 	private var keyMap:Array<KeyboardMap>;
 	
-	public function new() {
+	/**
+	 * Creates a new Keyboard plugin
+	 * @param	axisKeyCodes Shortcut to call the mapAxis() function
+	 * @param	buttonKeyCodes Shortcut to call the mapButtons() function
+	 */
+	public function new(axisKeyCodes:Array<Int> = null, buttonKeyCodes:Array<Int> = null) {
 		keyMap = new Array<KeyboardMap>();
+		if (axisKeyCodes != null) mapAxis(axisKeyCodes);
+		if (buttonKeyCodes != null) mapButtons(buttonKeyCodes);
 	}
 	
 	override public function init(inputter:Inputter, setButton:Int->Bool->Void, setAxis:Int->Float->Void) {
