@@ -11,8 +11,10 @@ class InputterPluginJoystick extends InputterPlugin {
 	private var axisMap:Map<Int, Int>;
 	private var deviceId:Int;
 	
-	public function new(deviceId:Int) {
+	public function new(deviceId:Int, axisCodes:Array<Int> = null, buttonCodes:Array<Int> = null) {
 		this.deviceId = deviceId;
+		if (axisCodes != null) mapAxis(axisCodes);
+		if (buttonCodes != null) mapButtons(buttonCodes);
 	}
 	
 	override public function init(inputter:Inputter, setButton:Int->Bool->Void, setAxis:Int->Float->Void) {
