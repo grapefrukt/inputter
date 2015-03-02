@@ -47,7 +47,7 @@ class InputterPluginJoystick extends InputterPlugin {
 		for (i in 0 ... e.axis.length) {
 			var id = i;
 			if (axisMap != null) {
-				if (!axisMap.exists(id)) return;
+				if (!axisMap.exists(id)) continue;
 				id = axisMap.get(id);
 			}
 			setAxis(id, e.axis[i]);
